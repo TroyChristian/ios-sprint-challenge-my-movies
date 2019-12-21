@@ -9,6 +9,34 @@
 import UIKit
 
 class MovieTableViewCell: UITableViewCell {
-
+  
+    @IBOutlet weak var titleLabel: UILabel!
+    
+    
+    
+    
+    @IBOutlet weak var hasWatchedBTN: UIButton!
+    @IBAction func hasWatchedBTNTapped(_ sender: Any) {
+        guard let movie = movie else {return}
+        movie.hasWatched = !movie.hasWatched
+        movieController.put(movie:movie)
+        CoreDataStack.shared.save()
+        updateViews()
+    }
+    var movie: Movie? {
+    didSet {
+        //updateViews()
+    }
+    }
+let movieController = MovieController()
+    
+    func updateViews() {
+        guard let movie = movie else {return}
+        if movie.hasWatched {
+            hasWatchedBTN.setTitle("Watched", for: .normal)
+        } else {
+            hasWatchedBTN.setTitle("Unwatched", for: .normal)
+        }
+    }
     
 }
