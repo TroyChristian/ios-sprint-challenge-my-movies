@@ -25,7 +25,7 @@ class MovieTableViewCell: UITableViewCell {
     }
     var movie: Movie? {
     didSet {
-        //updateViews()
+        updateViews()
     }
     }
 let movieController = MovieController()
