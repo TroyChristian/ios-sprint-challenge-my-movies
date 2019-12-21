@@ -133,7 +133,7 @@ class MovieController {
             
             do {
                 let fetchRequest: NSFetchRequest<Movie> = Movie.fetchRequest()
-                fetchRequest.predicate = NSPredicate(format: "identifer IN %@", identifiersToFetch)
+                fetchRequest.predicate = NSPredicate(format: "identifier IN %@", identifiersToFetch)
                 
                 let existingMovies = try context.fetch(fetchRequest)
                 
@@ -198,7 +198,7 @@ class MovieController {
     
     
     
-    
+    }
    func deleteMovie(movie:Movie) {
         CoreDataStack.shared.mainContext.delete(movie)
         CoreDataStack.shared.save()
@@ -206,6 +206,6 @@ class MovieController {
     }
         
 
-}
+
 
 }
