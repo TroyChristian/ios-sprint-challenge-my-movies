@@ -59,7 +59,7 @@ let movieController = MovieController()
         let movie = fetchedResultsController.object(at: indexPath)
         
         cell.titleLabel.text = movie.title
-        cell.idLabel.text = movie.identifier?.uuidString
+        //cell.idLabel.text = movie.identifier?.uuidString
         cell.movie = movie
         return cell
 
