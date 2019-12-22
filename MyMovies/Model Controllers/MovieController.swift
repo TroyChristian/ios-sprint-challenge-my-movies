@@ -68,16 +68,19 @@ class MovieController {
     func put(movie:Movie, completion: @escaping () -> Void = {}) {
         let identifier = movie.identifier ?? UUID()
         movie.identifier = identifier
+        print("I Put the movie \(String(describing: movie.title)) with the identifier \(identifier)")
         
         let requestURL = fireBaseURL.appendingPathComponent(identifier.uuidString).appendingPathExtension("json")
         
         var request = URLRequest(url: requestURL)
         request.httpMethod = "PUT"
         
-        guard let movieRepresentation = movie.movieRepresentation else {
+        guard let movieRepresentation = movie.movieRepresentation
+          else {
             print("Failed to assign a movie representation. line 72 MovieController")
             return
         }
+        print("I am now a movie representation with the identifier attribute of \(String(describing: movieRepresentation.identifier))" )
         
         do {
             request.httpBody = try JSONEncoder().encode(movieRepresentation)
@@ -107,7 +110,7 @@ class MovieController {
             }
             
             guard let data = data else {
-                print("Error retreiving movie from server. FetchMovieFromServer line 106. \(error)")
+                print("Error retreiving movie from server. FetchMovieFromServer line 106. \(String(describing: error))")
                 completion()
                 return
             }
@@ -115,50 +118,52 @@ class MovieController {
             do {
                 let decoder = JSONDecoder()
                 let movieRepresentations = Array(try decoder.decode([String: MovieRepresentation].self, from: data).values)
-                self.updateMovies(with: movieRepresentations)
+                try self.updateMovies(with: movieRepresentations)
             } catch {
                 print("Error decoding movies. MovieController line 116. \(error)")
             }
         }.resume()
     }
-    
-    func updateMovies
-        (with representations: [MovieRepresentation]) {
-        let identifiersToFetch = representations.compactMap({$0.identifier})
-        let representationsByID = Dictionary(uniqueKeysWithValues: zip(identifiersToFetch, representations))
-        
-       var moviesToCreate = representationsByID
-        let context = CoreDataStack.shared.container.newBackgroundContext()
-        context.performAndWait {
-            
-            do {
-                let fetchRequest: NSFetchRequest<Movie> = Movie.fetchRequest()
-                fetchRequest.predicate = NSPredicate(format: "identifier IN %@", identifiersToFetch)
-                
-                let existingMovies = try context.fetch(fetchRequest)
-                
-                for movie in existingMovies {
-                    guard let identifier = movie.identifier,
-                        let representation = representationsByID[identifier] else {continue}
-                    
-                    movie.title = representation.title
-                    movie.identifier = representation.identifier
-                    moviesToCreate.removeValue(forKey: identifier)
-                    
-                    
-                }
-                for representation in moviesToCreate.values{
-                    Movie(movieRepresentation: representation, context:context)
-                }
-                
-                CoreDataStack.shared.save(context: context)
-            } catch {
-                print("Error retreiving tasks from persistent store. MovieController line 151: \(error)")
-            }
-        }
-        
-        
-    }
+    // examine this function for funkiness in deleting movie from server. Movie is missing an identifier.
+     private func updateMovies(with representations: [MovieRepresentation]) throws {
+         let moviesWithID = representations.filter { $0.identifier != nil }
+         let identifiersToFetch = moviesWithID.compactMap { UUID(uuidString: $0.identifier!) }
+         let representationsByID = Dictionary(uniqueKeysWithValues: zip(identifiersToFetch, moviesWithID))
+         var moviesToCreate = representationsByID
+         
+         let fetchRequest: NSFetchRequest<Movie> = Movie.fetchRequest()
+         fetchRequest.predicate = NSPredicate(format: "identifier IN %@", identifiersToFetch)
+         
+         let context = CoreDataStack.shared.container.newBackgroundContext()
+         
+         context.perform {
+             do {
+                 let existingMovies = try context.fetch(fetchRequest)
+                 
+                 for movie in existingMovies {
+                     guard let id = movie.identifier,
+                         let representation = representationsByID[id] else { continue }
+                     self.update(movie: movie, with: representation)
+                     moviesToCreate.removeValue(forKey: id)
+                 }
+                 
+                 for representation in moviesToCreate.values {
+                    Movie(movieRepresentation: representation, context: context)
+                 }
+             } catch {
+                 print("Error fetching tasks for UUIDs: \(error)")
+             }
+         }
+         
+         try CoreDataStack.shared.save(context: context)
+     }
+     
+     private func update(movie: Movie, with representation: MovieRepresentation) {
+         movie.title = representation.title
+        movie.identifier = UUID(uuidString: representation.identifier!)
+         movie.hasWatched = representation.hasWatched ?? false
+     }
+ 
     
     @discardableResult func createMovie(title:String, identifier: UUID, hasWatched: Bool?) -> Movie{
         let context = CoreDataStack.shared.container.newBackgroundContext()
@@ -180,9 +185,9 @@ class MovieController {
         CoreDataStack.shared.save(context:context)
     }
     
-    func deleteMovieFromServer(movie: Movie, completion: @escaping () -> Void = {}){
-        guard let identifier = movie.identifier else {return}
-        let requestURL = fireBaseURL.appendingPathComponent(identifier.uuidString).appendingPathExtension("json")
+    func deleteMovieFromServer(movieID: UUID, completion: @escaping () -> Void = {}){
+      
+        let requestURL = fireBaseURL.appendingPathComponent(movieID.uuidString).appendingPathExtension("json")
         var request = URLRequest(url: requestURL)
         request.httpMethod = "DELETE"
         URLSession.shared.dataTask(with:request) {(_, _, error) in
@@ -191,6 +196,7 @@ class MovieController {
                 completion()
                 return
             }
+            print("I have executed deleteMovieFromServer")
             completion()
             
         
@@ -202,10 +208,11 @@ class MovieController {
    func deleteMovie(movie:Movie) {
         CoreDataStack.shared.mainContext.delete(movie)
         CoreDataStack.shared.save()
-        deleteMovieFromServer(movie:movie)
+    //deleteMovieFromServer(movieID: movie.identifier!)
     }
         
 
 
 
 }
+

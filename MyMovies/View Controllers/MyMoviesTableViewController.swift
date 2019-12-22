@@ -12,6 +12,11 @@ import CoreData
 class MyMoviesTableViewController: UITableViewController {
 let movieController = MovieController()
     
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        self.tableView.rowHeight = 125
+    }
+    
     lazy var fetchedResultsController: NSFetchedResultsController<Movie> = {
         let fetchRequest: NSFetchRequest<Movie> = Movie.fetchRequest()
         let seenDescriptor = NSSortDescriptor(key: "hasWatched", ascending:true)
@@ -52,7 +57,9 @@ let movieController = MovieController()
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
      guard   let cell = tableView.dequeueReusableCell(withIdentifier: "MyMovieCell", for: indexPath) as? MovieTableViewCell else { return UITableViewCell() }
         let movie = fetchedResultsController.object(at: indexPath)
+        
         cell.titleLabel.text = movie.title
+        cell.idLabel.text = movie.identifier?.uuidString
         cell.movie = movie
         return cell
 
@@ -70,7 +77,12 @@ let movieController = MovieController()
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             let movie = fetchedResultsController.object(at:indexPath)
+            print(type(of:movie))
+            print("I am the \(movie.title) in the tableview my id is \(movie.identifier)")
+            movieController.deleteMovieFromServer(movieID:(movie.identifier)!)
             movieController.deleteMovie(movie: movie)
+           
+            
         }    
     }
     

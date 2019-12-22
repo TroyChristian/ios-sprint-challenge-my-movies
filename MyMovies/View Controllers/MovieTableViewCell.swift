@@ -9,9 +9,11 @@
 import UIKit
 
 class MovieTableViewCell: UITableViewCell {
+    let movieController = MovieController()
   
     @IBOutlet weak var titleLabel: UILabel!
     
+    @IBOutlet weak var idLabel: UILabel!
     
     
     
@@ -28,7 +30,7 @@ class MovieTableViewCell: UITableViewCell {
         updateViews()
     }
     }
-let movieController = MovieController()
+
     
     func updateViews() {
         guard let movie = movie else {return}
